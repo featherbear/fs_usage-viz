@@ -258,9 +258,10 @@
 		<div class="empty-state">
 			<h2>👋 Welcome!</h2>
 			<p>Upload a fs_usage log file to get started.</p>
-			<p class="help-text">
+			<div class="help-text">
 				To generate a log file on Mac, run: <code>sudo fs_usage -w -f diskio -f network -f exec -f filesys [PID] > logs.txt</code>
-			</p>
+				<div class="subtitle">Or perhaps some combination of <pre>fs_usage | grep</pre>?</div>
+			</div>
 		</div>
 	{/if}
 </div>
@@ -550,6 +551,14 @@
 		padding: 1rem;
 		border-radius: 8px;
 		margin-top: 1rem;
+	}
+
+	.help-text .subtitle {
+		margin-top: 0.5em;
+	}
+
+	.help-text pre {
+		display: inline
 	}
 
 	code {
