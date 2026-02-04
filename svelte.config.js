@@ -9,8 +9,12 @@ const config = {
 			pages: 'build',
 			assets: 'build',
 			fallback: 'index.html',
+			precompress: false,
 			strict: false
-		})
+		}),
+		paths: {
+			base: process.env.BASE_PATH || ''
+		}
 	}
 };
 
