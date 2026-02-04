@@ -19,6 +19,8 @@
 	let fdFilter: string = '';
 	let pathFilter: string = '';
 	let binSize: number = 1.0;
+	let timeRangeStart: Date | null = null;
+	let timeRangeEnd: Date | null = null;
 	
 	// Available file descriptors
 	let availableFds: string[] = [];
@@ -78,13 +80,34 @@
 			if (pathFilter.trim()) {
 				filteredEntries = filterByPath(filteredEntries, pathFilter.trim(), false);
 			}
+			
+			if (timeRangeStart && timeRangeEnd) {
+				filteredEntries = filteredEntries.filter(entry => {
+					const entryTime = entry.timestamp.getTime();
+					return entryTime >= timeRangeStart!.getTime() && entryTime <= timeRangeEnd!.getTime();
+				});
+			}
 		}, 300) as unknown as number;
+	}
+
+	function handleTimeRangeSelect(startTime: Date, endTime: Date) {
+		timeRangeStart = startTime;
+		timeRangeEnd = endTime;
+		applyFilters();
+	}
+
+	function clearTimeFilter() {
+		timeRangeStart = null;
+		timeRangeEnd = null;
+		applyFilters();
 	}
 
 	function resetFilters() {
 		fdFilter = '';
 		pathFilter = '';
 		binSize = 1.0;
+		timeRangeStart = null;
+		timeRangeEnd = null;
 		// Clear any pending filter timeout
 		if (filterTimeout) {
 			clearTimeout(filterTimeout);
@@ -93,9 +116,9 @@
 		filteredEntries = allEntries;
 	}
 
-	$: if (fdFilter || pathFilter) {
+	$: if (fdFilter || pathFilter || timeRangeStart || timeRangeEnd) {
 		applyFilters();
-	} else if (allEntries.length > 0 && (fdFilter === '' && pathFilter === '')) {
+	} else if (allEntries.length > 0 && (fdFilter === '' && pathFilter === '' && !timeRangeStart && !timeRangeEnd)) {
 		filteredEntries = allEntries;
 	}
 </script>
@@ -199,6 +222,16 @@
 					</button>
 				</div>
 			</div>
+			
+			{#if timeRangeStart && timeRangeEnd}
+				<div class="time-filter-display">
+					<span class="time-filter-label">Time Filter Active:</span>
+					<span class="time-filter-value">
+						{timeRangeStart.toLocaleTimeString()} - {timeRangeEnd.toLocaleTimeString()}
+					</span>
+					<button on:click={clearTimeFilter} class="clear-time-filter">✕ Clear</button>
+				</div>
+			{/if}
 		</div>
 
 		<SummaryStats entries={filteredEntries} hasLoadedFile={allEntries.length > 0} />
@@ -206,7 +239,7 @@
 		<div class="charts-section">
 			<h2>📊 Visualisations</h2>
 			
-			<OperationChart entries={filteredEntries} binSizeSeconds={binSize} />
+			<OperationChart entries={filteredEntries} binSizeSeconds={binSize} onTimeRangeSelect={handleTimeRangeSelect} />
 			
 			<div class="charts-row">
 				<div class="chart-half">
@@ -424,6 +457,46 @@
 	.reset-button:hover {
 		background: #c0392b;
 		transform: translateY(-2px);
+	}
+
+	.time-filter-display {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 1rem;
+		padding: 1rem;
+		background: #e3f2fd;
+		border-radius: 8px;
+		border: 2px solid #2196f3;
+	}
+
+	.time-filter-label {
+		font-weight: 600;
+		color: #1976d2;
+	}
+
+	.time-filter-value {
+		font-family: monospace;
+		color: #333;
+		background: white;
+		padding: 0.4rem 0.8rem;
+		border-radius: 4px;
+	}
+
+	.clear-time-filter {
+		padding: 0.4rem 0.8rem;
+		background: #f44336;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 0.9rem;
+		font-weight: 600;
+		transition: background 0.2s;
+	}
+
+	.clear-time-filter:hover {
+		background: #d32f2f;
 	}
 
 	.charts-section {
