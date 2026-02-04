@@ -135,8 +135,10 @@
 					<div class="stat-item path-row">
 						<span class="label">{i + 1}.</span>
 						<span class="value">{count.toLocaleString()} times</span>
-						<span class="path" use:tooltip={{ content: path }}>
-							{path.length > 80 ? path.slice(0, 80) + '...' : path}
+						<span class="path">
+							<span class="path-text" use:tooltip={{ content: path }}>
+								{path.length > 80 ? path.slice(0, 80) + '...' : path}
+							</span>
 						</span>
 						<button 
 							class="clipboard-btn"
@@ -281,6 +283,10 @@
 		margin-left: 0.5rem;
 		flex: 1;
 		text-align: right;
+	}
+
+	.path-text {
+		display: inline-block;
 	}
 
 	.clipboard-btn {
