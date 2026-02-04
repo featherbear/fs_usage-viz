@@ -96,7 +96,7 @@
 				<div class="section-header">
 					<h3>Top Operations</h3>
 					<button class="show-all-btn" on:click={() => showAllOperations = !showAllOperations}>
-						{showAllOperations ? 'Show Top 10' : `Show All ${stats.uniqueOperations}`}
+						{showAllOperations ? 'Show Top 10' : `Show All (${stats.uniqueOperations.toLocaleString()})`}
 					</button>
 				</div>
 				{#each (showAllOperations ? stats.allOperationCounts : stats.operationCounts) as [op, count], i}
@@ -112,7 +112,7 @@
 				<div class="section-header">
 					<h3>Top File Descriptors</h3>
 					<button class="show-all-btn" on:click={() => showAllFds = !showAllFds}>
-						{showAllFds ? 'Show Top 10' : `Show All ${stats.uniqueFds}`}
+						{showAllFds ? 'Show Top 10' : `Show All (${stats.uniqueFds.toLocaleString()})`}
 					</button>
 				</div>
 				{#each (showAllFds ? stats.allFdCounts : stats.fdCounts) as [fd, count], i}
@@ -128,7 +128,7 @@
 				<div class="section-header">
 					<h3>Top Accessed Paths</h3>
 					<button class="show-all-btn" on:click={() => showAllPaths = !showAllPaths}>
-						{showAllPaths ? 'Show Top 10' : `Show All ${stats.entriesWithPath}`}
+						{showAllPaths ? 'Show Top 10' : `Show All (${stats.entriesWithPath.toLocaleString()})`}
 					</button>
 				</div>
 				{#each (showAllPaths ? stats.allPathCounts : stats.pathCounts) as [path, count], i}

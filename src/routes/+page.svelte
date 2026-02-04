@@ -419,6 +419,8 @@
 		cursor: pointer;
 		transition: all 0.3s ease;
 		margin-top: auto;
+		align-self: flex-end;
+		height: fit-content;
 	}
 
 	.reset-button:hover {
