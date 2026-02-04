@@ -10,6 +10,10 @@
 
 	$: stats = getSummaryStats(entries);
 
+	let showAllOperations = false;
+	let showAllFds = false;
+	let showAllPaths = false;
+
 	function tooltip(node: HTMLElement, options: { content: string }) {
 		const instance = tippy(node, {
 			content: options.content,
@@ -89,8 +93,13 @@
 			</div>
 
 			<div class="summary-section">
-				<h3>Top Operations</h3>
-				{#each stats.operationCounts as [op, count], i}
+				<div class="section-header">
+					<h3>Top Operations</h3>
+					<button class="show-all-btn" on:click={() => showAllOperations = !showAllOperations}>
+						{showAllOperations ? 'Show Top 10' : `Show All ${stats.uniqueOperations}`}
+					</button>
+				</div>
+				{#each (showAllOperations ? stats.allOperationCounts : stats.operationCounts) as [op, count], i}
 					<div class="stat-item">
 						<span class="label">{i + 1}.</span>
 						<span class="op-name">{op}</span>
@@ -100,8 +109,13 @@
 			</div>
 
 			<div class="summary-section">
-				<h3>Top File Descriptors</h3>
-				{#each stats.fdCounts as [fd, count], i}
+				<div class="section-header">
+					<h3>Top File Descriptors</h3>
+					<button class="show-all-btn" on:click={() => showAllFds = !showAllFds}>
+						{showAllFds ? 'Show Top 10' : `Show All ${stats.uniqueFds}`}
+					</button>
+				</div>
+				{#each (showAllFds ? stats.allFdCounts : stats.fdCounts) as [fd, count], i}
 					<div class="stat-item">
 						<span class="label">{i + 1}.</span>
 						<span class="op-name">F={fd}</span>
@@ -111,8 +125,13 @@
 			</div>
 
 			<div class="summary-section full-width">
-				<h3>Top Accessed Paths</h3>
-				{#each stats.pathCounts as [path, count], i}
+				<div class="section-header">
+					<h3>Top Accessed Paths</h3>
+					<button class="show-all-btn" on:click={() => showAllPaths = !showAllPaths}>
+						{showAllPaths ? 'Show Top 10' : `Show All ${stats.entriesWithPath}`}
+					</button>
+				</div>
+				{#each (showAllPaths ? stats.allPathCounts : stats.pathCounts) as [path, count], i}
 					<div class="stat-item path-row">
 						<span class="label">{i + 1}.</span>
 						<span class="value">{count.toLocaleString()} times</span>
@@ -139,7 +158,7 @@
 	</div>
 {:else}
 	<div class="no-data">
-		<p>{hasLoadedFile ? 'No entries match the current filters.' : 'No log entries to summarize. Please load a log file.'}</p>
+		<p>{hasLoadedFile ? 'No entries match the current filters.' : 'No log entries to summarise. Please load a log file.'}</p>
 	</div>
 {/if}
 
@@ -182,6 +201,43 @@
 		font-weight: 600;
 		border-bottom: 1px solid #ddd;
 		padding-bottom: 0.5rem;
+		flex: 1;
+	}
+
+	.section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 1rem;
+		padding-bottom: 0.5rem;
+		border-bottom: 1px solid #ddd;
+	}
+
+	.section-header h3 {
+		margin: 0;
+		padding: 0;
+		border: none;
+	}
+
+	.show-all-btn {
+		background: #4682b4;
+		color: white;
+		border: none;
+		border-radius: 4px;
+		padding: 0.4rem 0.8rem;
+		font-size: 0.8rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+	}
+
+	.show-all-btn:hover {
+		background: #5a92c4;
+		transform: translateY(-1px);
+	}
+
+	.show-all-btn:active {
+		transform: translateY(0);
 	}
 
 	.stat-item {

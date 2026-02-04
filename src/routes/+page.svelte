@@ -100,12 +100,12 @@
 </script>
 
 <svelte:head>
-	<title>fs_usage log visualizer</title>
+	<title>fs_usage log visualiser</title>
 </svelte:head>
 
 <div class="container">
 	<header>
-		<h1>🔍 fs_usage log visualizer</h1>
+		<h1>🔍 fs_usage log visualiser</h1>
 		<p class="subtitle">Analyze macOS filesystem logs</p>
 	</header>
 

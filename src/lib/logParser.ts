@@ -208,12 +208,18 @@ export function getSummaryStats(entries: LogEntry[]) {
 		operationCounts: Array.from(operationCounts.entries())
 			.sort((a, b) => b[1] - a[1])
 			.slice(0, 10),
+		allOperationCounts: Array.from(operationCounts.entries())
+			.sort((a, b) => b[1] - a[1]),
 		fdCounts: Array.from(fdCounts.entries())
 			.sort((a, b) => b[1] - a[1])
 			.slice(0, 10),
+		allFdCounts: Array.from(fdCounts.entries())
+			.sort((a, b) => b[1] - a[1]),
 		pathCounts: Array.from(pathCounts.entries())
 			.sort((a, b) => b[1] - a[1])
 			.slice(0, 10),
+		allPathCounts: Array.from(pathCounts.entries())
+			.sort((a, b) => b[1] - a[1]),
 		uniqueOperations: operationCounts.size,
 		uniqueFds: fdCounts.size,
 		entriesWithPath: pathCounts.size,
