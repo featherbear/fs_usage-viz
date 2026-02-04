@@ -226,7 +226,7 @@
 			<h2>👋 Welcome!</h2>
 			<p>Upload a fs_usage log file to get started.</p>
 			<p class="help-text">
-				To generate a log file on Mac, run: <code>sudo fs_usage -w -f filesys > logs.txt</code>
+				To generate a log file on Mac, run: <code>sudo fs_usage -w -f diskio -f network -f exec -f filesys [PID] > logs.txt</code>
 			</p>
 		</div>
 	{/if}
@@ -419,8 +419,6 @@
 		cursor: pointer;
 		transition: all 0.3s ease;
 		margin-top: auto;
-		align-self: flex-end;
-		height: fit-content;
 	}
 
 	.reset-button:hover {
