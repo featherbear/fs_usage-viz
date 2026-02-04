@@ -22,6 +22,7 @@
 	export let entries: LogEntry[] = [];
 	export let binSizeSeconds: number = 1.0;
 	export let title: string = 'Operations Over Time';
+	export let onTimeRangeSelect: ((start: Date, end: Date) => void) | undefined = undefined;
 
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | null = null;
@@ -83,6 +84,15 @@
 				responsive: true,
 				maintainAspectRatio: false,
 				animation: entries.length > 10000 ? false : undefined,
+				onClick: (event, activeElements) => {
+					if (activeElements.length > 0 && onTimeRangeSelect) {
+						const index = activeElements[0].index;
+						const clickedTime = sortedBins[index][0];
+						const startTime = new Date(clickedTime.getTime());
+						const endTime = new Date(clickedTime.getTime() + binSizeSeconds * 1000);
+						onTimeRangeSelect(startTime, endTime);
+					}
+				},
 				plugins: {
 					title: {
 						display: true,
@@ -162,5 +172,9 @@
 		width: 100%;
 		height: 400px;
 		margin: 1rem 0;
+	}
+	
+	canvas {
+		cursor: pointer;
 	}
 </style>

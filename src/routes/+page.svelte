@@ -18,6 +18,8 @@
 	let fdFilter: string = '';
 	let pathFilter: string = '';
 	let binSize: number = 1.0;
+	let timeRangeStart: Date | null = null;
+	let timeRangeEnd: Date | null = null;
 	
 	// Available file descriptors
 	let availableFds: string[] = [];
@@ -70,6 +72,13 @@
 		filterTimeout = setTimeout(() => {
 			filteredEntries = allEntries;
 			
+			if (timeRangeStart && timeRangeEnd) {
+				filteredEntries = filteredEntries.filter(entry => {
+					const entryTime = entry.timestamp.getTime();
+					return entryTime >= timeRangeStart!.getTime() && entryTime <= timeRangeEnd!.getTime();
+				});
+			}
+			
 			if (fdFilter) {
 				filteredEntries = filterByFileDescriptor(filteredEntries, fdFilter);
 			}
@@ -84,6 +93,8 @@
 		fdFilter = '';
 		pathFilter = '';
 		binSize = 1.0;
+		timeRangeStart = null;
+		timeRangeEnd = null;
 		// Clear any pending filter timeout
 		if (filterTimeout) {
 			clearTimeout(filterTimeout);
@@ -92,10 +103,20 @@
 		filteredEntries = allEntries;
 	}
 
-	$: if (fdFilter || pathFilter) {
+	$: if (fdFilter || pathFilter || timeRangeStart || timeRangeEnd) {
 		applyFilters();
-	} else if (allEntries.length > 0 && (fdFilter === '' && pathFilter === '')) {
+	} else if (allEntries.length > 0 && (fdFilter === '' && pathFilter === '' && !timeRangeStart && !timeRangeEnd)) {
 		filteredEntries = allEntries;
+	}
+	
+	function handleTimeRangeSelect(start: Date, end: Date) {
+		timeRangeStart = start;
+		timeRangeEnd = end;
+	}
+	
+	function clearTimeFilter() {
+		timeRangeStart = null;
+		timeRangeEnd = null;
 	}
 </script>
 
@@ -197,6 +218,25 @@
 						🔄 Reset Filters
 					</button>
 				</div>
+				
+				{#if timeRangeStart && timeRangeEnd}
+					<div class="filter-group time-filter-display">
+						<div class="time-filter-badge">
+							<span class="time-label">🕒 Time Filter:</span>
+							<span class="time-range">
+								{timeRangeStart.toLocaleTimeString()} - {timeRangeEnd.toLocaleTimeString()}
+							</span>
+							<button class="clear-time-btn" on:click={clearTimeFilter} title="Clear time filter">
+								✕
+							</button>
+						</div>
+						<div class="time-hint">Click a bar in the chart to filter by time range</div>
+					</div>
+				{:else}
+					<div class="filter-group">
+						<div class="time-hint">💡 Click a bar in the Operations Over Time chart to filter by time range</div>
+					</div>
+				{/if}
 			</div>
 		</div>
 
@@ -205,7 +245,11 @@
 		<div class="charts-section">
 			<h2>📊 Visualisations</h2>
 			
-			<OperationChart entries={filteredEntries} binSizeSeconds={binSize} />
+			<OperationChart 
+				entries={filteredEntries} 
+				binSizeSeconds={binSize} 
+				onTimeRangeSelect={handleTimeRangeSelect}
+			/>
 			
 			<div class="charts-row">
 				<div class="chart-half">
@@ -419,6 +463,60 @@
 	.reset-button:hover {
 		background: #c0392b;
 		transform: translateY(-2px);
+	}
+	
+	.time-filter-display {
+		background: #e3f2fd;
+		border: 2px solid #2196f3;
+		border-radius: 8px;
+		padding: 1rem;
+	}
+	
+	.time-filter-badge {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		font-size: 0.95rem;
+	}
+	
+	.time-label {
+		font-weight: 600;
+		color: #1976d2;
+	}
+	
+	.time-range {
+		color: #333;
+		font-family: monospace;
+		font-weight: 500;
+		flex: 1;
+	}
+	
+	.clear-time-btn {
+		background: #f44336;
+		color: white;
+		border: none;
+		border-radius: 50%;
+		width: 24px;
+		height: 24px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		font-size: 0.9rem;
+		line-height: 1;
+		transition: all 0.2s ease;
+	}
+	
+	.clear-time-btn:hover {
+		background: #d32f2f;
+		transform: scale(1.1);
+	}
+	
+	.time-hint {
+		font-size: 0.85rem;
+		color: #666;
+		margin-top: 0.5rem;
+		font-style: italic;
 	}
 
 	.charts-section {
