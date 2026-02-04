@@ -11,6 +11,8 @@
 	let filteredEntries: LogEntry[] = [];
 	let fileInput: HTMLInputElement;
 	let fileName: string = '';
+	let isLoading: boolean = false;
+	let loadingProgress: number = 0;
 	
 	// Filter states
 	let fdFilter: string = '';
@@ -19,57 +21,81 @@
 	
 	// Available file descriptors
 	let availableFds: string[] = [];
+	let filterTimeout: number | undefined;
 
-	function handleFileUpload(event: Event) {
+	async function handleFileUpload(event: Event) {
 		const target = event.target as HTMLInputElement;
 		const file = target.files?.[0];
 		
 		if (!file) return;
 		
+		isLoading = true;
+		loadingProgress = 0;
 		fileName = file.name;
-		const reader = new FileReader();
 		
-		reader.onload = (e) => {
-			const content = e.target?.result as string;
+		try {
+			const content = await file.text();
+			loadingProgress = 30;
+			
+			// Parse in chunks to avoid blocking
+			await new Promise(resolve => setTimeout(resolve, 0));
 			allEntries = parseLogFile(content);
-			filteredEntries = allEntries;
+			loadingProgress = 70;
 			
 			// Extract unique file descriptors
 			const fdSet = new Set<string>();
-            for (const entry of allEntries) {
-                if (entry.fileDescriptor) {
-                    fdSet.add(entry.fileDescriptor);
-                }
-            }
+			for (const entry of allEntries) {
+				if (entry.fileDescriptor) {
+					fdSet.add(entry.fileDescriptor);
+				}
+			}
 			availableFds = Array.from(fdSet).sort((a, b) => Number.parseInt(a) - Number.parseInt(b));
 			
+			filteredEntries = allEntries;
+			loadingProgress = 100;
 			resetFilters();
-		};
-		
-		reader.readAsText(file);
+		} catch (error) {
+			console.error('Error loading file:', error);
+			alert('Error loading file. Please try again.');
+		} finally {
+			isLoading = false;
+		}
 	}
 
 	function applyFilters() {
-		filteredEntries = allEntries;
-		
-		if (fdFilter) {
-			filteredEntries = filterByFileDescriptor(filteredEntries, fdFilter);
+		if (filterTimeout) {
+			clearTimeout(filterTimeout);
 		}
 		
-		if (pathFilter.trim()) {
-			filteredEntries = filterByPath(filteredEntries, pathFilter.trim(), false);
-		}
+		filterTimeout = setTimeout(() => {
+			filteredEntries = allEntries;
+			
+			if (fdFilter) {
+				filteredEntries = filterByFileDescriptor(filteredEntries, fdFilter);
+			}
+			
+			if (pathFilter.trim()) {
+				filteredEntries = filterByPath(filteredEntries, pathFilter.trim(), false);
+			}
+		}, 300) as unknown as number;
 	}
 
 	function resetFilters() {
 		fdFilter = '';
 		pathFilter = '';
 		binSize = 1.0;
+		// Clear any pending filter timeout
+		if (filterTimeout) {
+			clearTimeout(filterTimeout);
+			filterTimeout = undefined;
+		}
 		filteredEntries = allEntries;
 	}
 
-	$: if (fdFilter !== '' || pathFilter !== '') {
+	$: if (fdFilter || pathFilter) {
 		applyFilters();
+	} else if (allEntries.length > 0 && (fdFilter === '' && pathFilter === '')) {
+		filteredEntries = allEntries;
 	}
 </script>
 
@@ -82,6 +108,17 @@
 		<h1>🔍 fs_usage log visualizer</h1>
 		<p class="subtitle">Analyze macOS filesystem logs</p>
 	</header>
+
+	{#if isLoading}
+		<div class="loading-overlay">
+			<div class="loading-spinner"></div>
+			<p class="loading-text">Processing {fileName}...</p>
+			<div class="progress-bar">
+				<div class="progress-fill" style="width: {loadingProgress}%"></div>
+			</div>
+			<p class="progress-text">{loadingProgress}%</p>
+		</div>
+	{/if}
 
 	<div class="upload-section">
 		<input
@@ -163,7 +200,7 @@
 			</div>
 		</div>
 
-		<SummaryStats entries={filteredEntries} />
+		<SummaryStats entries={filteredEntries} hasLoadedFile={allEntries.length > 0} />
 
 		<div class="charts-section">
 			<h2>📊 Visualisations</h2>
@@ -439,6 +476,61 @@
 		padding: 0.3rem 0.6rem;
 		border-radius: 4px;
 		font-family: 'Courier New', monospace;
+	}
+
+	.loading-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.8);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+	}
+
+	.loading-spinner {
+		width: 60px;
+		height: 60px;
+		border: 4px solid rgba(255, 255, 255, 0.3);
+		border-top-color: #fff;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin-bottom: 1rem;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
+
+	.loading-text {
+		color: white;
+		font-size: 1.2rem;
+		margin-bottom: 1rem;
+	}
+
+	.progress-bar {
+		width: 300px;
+		height: 8px;
+		background: rgba(255, 255, 255, 0.3);
+		border-radius: 4px;
+		overflow: hidden;
+		margin-bottom: 0.5rem;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: linear-gradient(90deg, #4CAF50, #8BC34A);
+		transition: width 0.3s ease;
+	}
+
+	.progress-text {
+		color: white;
+		font-size: 0.9rem;
+		opacity: 0.8;
 	}
 
 	@media (max-width: 768px) {

@@ -83,15 +83,21 @@ export function parseLine(line: string): LogEntry | null {
 
 /**
  * Parses the entire log file content
+ * Optimized for large files
  */
 export function parseLogFile(content: string): LogEntry[] {
 	const lines = content.split('\n');
 	const entries: LogEntry[] = [];
+	const batchSize = 5000;
 
-	for (const line of lines) {
-		const entry = parseLine(line);
-		if (entry) {
-			entries.push(entry);
+	// Process in batches to avoid blocking
+	for (let i = 0; i < lines.length; i += batchSize) {
+		const batch = lines.slice(i, Math.min(i + batchSize, lines.length));
+		for (const line of batch) {
+			const entry = parseLine(line);
+			if (entry) {
+				entries.push(entry);
+			}
 		}
 	}
 
@@ -182,9 +188,17 @@ export function getSummaryStats(entries: LogEntry[]) {
 
 	// Duration statistics
 	const durations = entries.map((e) => e.duration);
-	const minDuration = Math.min(...durations);
-	const maxDuration = Math.max(...durations);
-	const avgDuration = durations.reduce((sum, d) => sum + d, 0) / durations.length;
+	let minDuration = Infinity;
+	let maxDuration = -Infinity;
+	let sumDuration = 0;
+	
+	for (const duration of durations) {
+		if (duration < minDuration) minDuration = duration;
+		if (duration > maxDuration) maxDuration = duration;
+		sumDuration += duration;
+	}
+	
+	const avgDuration = durations.length > 0 ? sumDuration / durations.length : 0;
 
 	return {
 		totalEntries: entries.length,

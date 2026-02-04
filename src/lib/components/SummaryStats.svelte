@@ -1,10 +1,44 @@
 <script lang="ts">
 	import type { LogEntry } from '$lib/logParser';
 	import { getSummaryStats } from '$lib/logParser';
+	import tippy from 'tippy.js';
+	import 'tippy.js/dist/tippy.css';
+	import { onMount } from 'svelte';
 
 	export let entries: LogEntry[] = [];
+	export let hasLoadedFile: boolean = false;
 
 	$: stats = getSummaryStats(entries);
+
+	function tooltip(node: HTMLElement, options: { content: string }) {
+		const instance = tippy(node, {
+			content: options.content,
+			placement: 'top',
+			arrow: true,
+			theme: 'light-border',
+			maxWidth: 600,
+			allowHTML: false,
+			popperOptions: {
+				modifiers: [
+					{
+						name: 'flip',
+						options: {
+							fallbackPlacements: ['bottom', 'right'],
+						}
+					}
+				]
+			}
+		});
+
+		return {
+			update(newOptions: { content: string }) {
+				instance.setContent(newOptions.content);
+			},
+			destroy() {
+				instance.destroy();
+			}
+		};
+	}
 </script>
 
 {#if stats}
@@ -58,8 +92,9 @@
 				<h3>Top Operations</h3>
 				{#each stats.operationCounts as [op, count], i}
 					<div class="stat-item">
-						<span class="label">{i + 1}. {op}:</span>
-						<span class="value">{count} ({((count / stats.totalEntries) * 100).toFixed(1)}%)</span>
+						<span class="label">{i + 1}.</span>
+						<span class="op-name">{op}</span>
+						<span class="value">{count.toLocaleString()} ({((count / stats.totalEntries) * 100).toFixed(1)}%)</span>
 					</div>
 				{/each}
 			</div>
@@ -68,8 +103,9 @@
 				<h3>Top File Descriptors</h3>
 				{#each stats.fdCounts as [fd, count], i}
 					<div class="stat-item">
-						<span class="label">{i + 1}. F={fd}:</span>
-						<span class="value">{count} ({((count / stats.totalEntries) * 100).toFixed(1)}%)</span>
+						<span class="label">{i + 1}.</span>
+						<span class="op-name">F={fd}</span>
+						<span class="value">{count.toLocaleString()} ({((count / stats.totalEntries) * 100).toFixed(1)}%)</span>
 					</div>
 				{/each}
 			</div>
@@ -77,10 +113,25 @@
 			<div class="summary-section full-width">
 				<h3>Top Accessed Paths</h3>
 				{#each stats.pathCounts as [path, count], i}
-					<div class="stat-item">
+					<div class="stat-item path-row">
 						<span class="label">{i + 1}.</span>
-						<span class="value">{count}x</span>
-						<span class="path">{path.length > 80 ? path.slice(0, 80) + '...' : path}</span>
+						<span class="value">{count.toLocaleString()} times</span>
+						<span class="path" use:tooltip={{ content: path }}>
+							{path.length > 80 ? path.slice(0, 80) + '...' : path}
+						</span>
+						<button 
+							class="clipboard-btn"
+							use:tooltip={{ content: 'Copy path to clipboard' }}
+							on:click={() => {
+								navigator.clipboard.writeText(path);
+								alert('Path copied to clipboard!');
+							}}
+						>
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+								<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+							</svg>
+						</button>
 					</div>
 				{/each}
 			</div>
@@ -88,7 +139,7 @@
 	</div>
 {:else}
 	<div class="no-data">
-		<p>No log entries to summarize. Please load a log file.</p>
+		<p>{hasLoadedFile ? 'No entries match the current filters.' : 'No log entries to summarize. Please load a log file.'}</p>
 	</div>
 {/if}
 
@@ -141,6 +192,10 @@
 		font-size: 0.9rem;
 	}
 
+	.stat-item.path-row {
+		align-items: center;
+	}
+
 	.stat-item:last-child {
 		border-bottom: none;
 	}
@@ -148,11 +203,19 @@
 	.label {
 		color: #666;
 		font-weight: 500;
+		min-width: 2rem;
+		text-align: right;
+		margin-right: 1rem;
 	}
 
 	.value {
 		color: #2c3e50;
 		font-weight: 600;
+	}
+
+	.op-name {
+		color: #555;
+		flex: 1;
 	}
 
 	.path {
@@ -162,7 +225,36 @@
 		margin-left: 0.5rem;
 		flex: 1;
 		text-align: right;
-		word-break: break-all;
+	}
+
+	.clipboard-btn {
+		background: transparent;
+		border: none;
+		border-radius: 4px;
+		padding: 0.25rem;
+		margin-left: 0.5rem;
+		cursor: pointer;
+		color: #666;
+		transition: all 0.2s ease;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		opacity: 0;
+		width: 24px;
+		height: 24px;
+	}
+
+	.path-row:hover .clipboard-btn {
+		opacity: 1;
+	}
+
+	.clipboard-btn:hover {
+		background: #f0f0f0;
+		color: #4682b4;
+	}
+
+	.clipboard-btn:active {
+		transform: scale(0.9);
 	}
 
 	.no-data {
@@ -172,5 +264,33 @@
 		padding: 2rem;
 		text-align: center;
 		color: #666;
+	}
+
+	:global(.tippy-box[data-theme~='light-border']) {
+		background-color: white;
+		color: #333;
+		border: 1px solid #ddd;
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+		font-size: 0.85rem;
+		font-family: monospace;
+		text-align: left;
+	}
+
+	:global(.tippy-box[data-theme~='light-border'][data-placement^='top'] > .tippy-arrow::before) {
+		border-top-color: #ddd;
+	}
+
+	:global(.tippy-box[data-theme~='light-border'] > .tippy-arrow::after) {
+		content: '';
+		position: absolute;
+		border-style: solid;
+		border-color: transparent;
+		border-width: 7px;
+	}
+
+	:global(.tippy-box[data-theme~='light-border'][data-placement^='top'] > .tippy-arrow::after) {
+		border-top-color: white;
+		top: -7px;
+		left: -7px;
 	}
 </style>

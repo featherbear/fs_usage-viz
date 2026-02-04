@@ -90,10 +90,16 @@
 			options: {
 				responsive: true,
 				maintainAspectRatio: false,
+				animation: entries.length > 10000 ? false : undefined,
 				plugins: {
 					title: {
 						display: true,
 						text: `Operation Duration Analysis (bin: ${binSizeSeconds}s)`
+					},
+					decimation: {
+						enabled: entries.length > 1000,
+						algorithm: 'min-max',
+						samples: 1000
 					}
 				},
 				scales: {
@@ -132,7 +138,7 @@
 		}
 	});
 
-	$: if (canvas && entries) {
+	$: if (canvas && (entries || binSizeSeconds)) {
 		updateChart();
 	}
 

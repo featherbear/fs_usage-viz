@@ -48,8 +48,18 @@
 		const bins = binByTime(entries, binSizeSeconds);
 		const sortedBins = Array.from(bins.entries()).sort((a, b) => a[0].getTime() - b[0].getTime());
 
-		const labels = sortedBins.map(([time]) => time);
-		const counts = sortedBins.map(([, entries]) => entries.length);
+		const chartData = sortedBins.map(([time, entries]) => ({
+			x: time,
+			y: entries.length
+		}));
+
+		// Calculate appropriate bar thickness based on bin size and chart width
+		const chartWidth = canvas.parentElement?.clientWidth || 800;
+		const timeRange = sortedBins.length > 1 
+			? sortedBins[sortedBins.length - 1][0].getTime() - sortedBins[0][0].getTime()
+			: binSizeSeconds * 1000;
+		const pixelsPerMs = chartWidth / (timeRange || 1);
+		const barThickness = Math.max(1, Math.floor(pixelsPerMs * binSizeSeconds * 1000 * 0.9));
 
 		if (chart) {
 			chart.destroy();
@@ -58,27 +68,41 @@
 		chart = new Chart(canvas, {
 			type: 'bar',
 			data: {
-				labels,
 				datasets: [
 					{
 						label: 'Operations',
-						data: counts,
+						data: chartData,
 						backgroundColor: 'rgba(70, 130, 180, 0.7)',
 						borderColor: 'rgba(70, 130, 180, 1)',
-						borderWidth: 1
+						borderWidth: 1,
+						barThickness: barThickness
 					}
 				]
 			},
 			options: {
 				responsive: true,
 				maintainAspectRatio: false,
+				animation: entries.length > 10000 ? false : undefined,
 				plugins: {
 					title: {
 						display: true,
-						text: `${title} (bin: ${binSizeSeconds}s, total: ${entries.length} ops)`
+						text: `${title} (bin: ${binSizeSeconds}s, total: ${entries.length.toLocaleString()} ops)`
 					},
 					legend: {
 						display: false
+					},
+					tooltip: {
+						callbacks: {
+							label: function(context) {
+								const value = context.parsed.y;
+								return `Operations: ${value.toLocaleString()}`;
+							}
+						}
+					},
+					decimation: {
+						enabled: sortedBins.length > 500,
+						algorithm: 'lttb',
+						samples: 1000
 					}
 				},
 				scales: {
@@ -93,13 +117,19 @@
 						title: {
 							display: true,
 							text: 'Time'
-						}
+						},
+						offset: false
 					},
 					y: {
 						beginAtZero: true,
 						title: {
 							display: true,
 							text: 'Number of Operations'
+						},
+						ticks: {
+							callback: function(value) {
+								return value.toLocaleString();
+							}
 						}
 					}
 				}
@@ -117,7 +147,7 @@
 		}
 	});
 
-	$: if (canvas && entries) {
+	$: if (canvas && (entries || binSizeSeconds)) {
 		updateChart();
 	}
 </script>
